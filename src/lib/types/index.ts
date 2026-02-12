@@ -11,6 +11,8 @@ export interface User {
   name: string;
   role: UserRole;
   companyId: string | null;
+  /** From auth/me: used as merchant_id for merchant_data API */
+  companyProfileId: string | null;
   enabled: boolean;
   createdAt: string;
 }

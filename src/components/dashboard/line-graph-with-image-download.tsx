@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useId } from "react";
 import {
   Line,
   Area,
@@ -46,6 +46,11 @@ interface LineGraphWithImageDownloadProps {
   className?: string;
 }
 
+/** Sanitize for use in SVG gradient id (no spaces or special chars so url(#id) works) */
+function sanitizeGradientId(key: string): string {
+  return key.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-_]/g, "");
+}
+
 export function LineGraphWithImageDownload({
   title,
   data,
@@ -54,6 +59,7 @@ export function LineGraphWithImageDownload({
   className,
 }: LineGraphWithImageDownloadProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const chartId = useId().replace(/:/g, "");
 
   const handleDownload = useCallback(async () => {
     if (!containerRef.current) return;
@@ -82,7 +88,14 @@ export function LineGraphWithImageDownload({
             <ComposedChart data={data} margin={{ top: 16, right: 16, left: 8, bottom: 8 }}>
               <defs>
                 {series.map((s, i) => (
-                  <linearGradient key={s.dataKey} id={`gradient-${s.dataKey}-${i}`} x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient
+                    key={s.dataKey}
+                    id={`gradient-${chartId}-${sanitizeGradientId(s.dataKey)}-${i}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
                     <stop offset="0%" stopColor={s.stroke} stopOpacity={0.35} />
                     <stop offset="100%" stopColor={s.stroke} stopOpacity={0.02} />
                   </linearGradient>
@@ -118,8 +131,9 @@ export function LineGraphWithImageDownload({
                   key={`area-${s.dataKey}`}
                   type="monotone"
                   dataKey={s.dataKey}
-                  fill={`url(#gradient-${s.dataKey}-${i})`}
+                  fill={`url(#gradient-${chartId}-${sanitizeGradientId(s.dataKey)}-${i})`}
                   stroke="none"
+                  legendType="none"
                 />
               ))}
               {series.map((s) => (

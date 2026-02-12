@@ -36,8 +36,9 @@ export default function ResetPasswordPage() {
       await resetPassword(data);
       setSent(true);
       toast.success("Check your email for reset instructions");
-    } catch {
-      toast.error("Something went wrong");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

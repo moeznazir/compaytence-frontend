@@ -129,8 +129,8 @@ export function AssessmentModal({
       if (step < TOTAL_STEPS) setStep(step + 1);
       toast.success("Step saved");
       onSaved?.();
-    } catch {
-      toast.error("Failed to save");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSaving(false);
     }
@@ -148,8 +148,8 @@ export function AssessmentModal({
       );
       toast.success("Submitted for approval");
       onSaved?.();
-    } catch {
-      toast.error("Submit failed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Submit failed");
     } finally {
       setSaving(false);
     }
@@ -165,8 +165,8 @@ export function AssessmentModal({
       );
       toast.success("Approved");
       onSaved?.();
-    } catch {
-      toast.error("Failed to approve");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to approve");
     } finally {
       setSaving(false);
     }
@@ -184,8 +184,8 @@ export function AssessmentModal({
       setRejectReason("");
       toast.success("Rejected");
       onSaved?.();
-    } catch {
-      toast.error("Failed to reject");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reject");
     } finally {
       setSaving(false);
     }
@@ -202,8 +202,8 @@ export function AssessmentModal({
       setProposalDecision(null);
       toast.success("Proposal accepted");
       onSaved?.();
-    } catch {
-      toast.error("Failed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
     } finally {
       setSaving(false);
     }
@@ -222,8 +222,8 @@ export function AssessmentModal({
       setRejectReason("");
       toast.success("Proposal rejected");
       onSaved?.();
-    } catch {
-      toast.error("Failed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
     } finally {
       setSaving(false);
     }

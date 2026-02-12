@@ -52,8 +52,8 @@ export function CreateAssessmentModal({
       reset();
       toast.success(moduleType === "risk_assessment" ? "Assessment created" : "PSP created");
       onCreated();
-    } catch {
-      toast.error("Failed to create");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create");
     } finally {
       setLoading(false);
     }

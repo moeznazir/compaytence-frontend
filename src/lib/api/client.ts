@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/store/auth-store";
+import { parseFetchError } from "./errors";
 
 const MOCK_DELAY = 400;
 
@@ -23,8 +24,8 @@ export async function apiClient<T>(
     headers,
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { message?: string }).message || res.statusText);
+    const message = await parseFetchError(res, "Request failed");
+    throw new Error(message);
   }
   return res.json() as Promise<T>;
 }
