@@ -29,8 +29,6 @@ import {
 import { SourceLineChart } from "@/components/dashboard/source-charts";
 import { TableWithCsvDownload, type TableColumn } from "@/components/dashboard/table-with-csv-download";
 import { LineGraphWithImageDownload, type LineSeriesConfig } from "@/components/dashboard/line-graph-with-image-download";
-import { Modal } from "@/components/ui/modal";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 function formatCurrency(value: number, currency = "USD") {
@@ -301,6 +299,30 @@ function getMerchantPaypalFromMerchantData(
   merchantData: MerchantDataResponse | null
 ): { columns: TableColumn<Record<string, unknown>>[]; rows: Record<string, unknown>[] } {
   const rows = (merchantData?.paypal_master?.merchant_paypal ?? []) as Record<string, unknown>[];
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return { columns: [], rows: [] };
+  }
+  const firstRow = rows[0];
+  const keys = Object.keys(firstRow);
+  const columns: TableColumn<Record<string, unknown>>[] = keys.map((key) => {
+    const label = key
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+    return { key, header: label };
+  });
+  return { columns, rows };
+}
+
+/**
+ * Build Merchant PayPal Statement table from merchant_data API paypal_statement.transformed_paypal_statemet.
+ * Columns are derived from the first row's keys (API uses typo "transformed_paypal_statemet").
+ */
+function getPaypalStatementTableFromMerchantData(
+  merchantData: MerchantDataResponse | null
+): { columns: TableColumn<Record<string, unknown>>[]; rows: Record<string, unknown>[] } {
+  const statement = merchantData?.paypal_statement as Record<string, unknown> | undefined;
+  const rows = (statement?.transformed_paypal_statemet ?? []) as Record<string, unknown>[];
   if (!Array.isArray(rows) || rows.length === 0) {
     return { columns: [], rows: [] };
   }
@@ -782,7 +804,6 @@ export default function DashboardPage() {
   /** Merchant data API response – for dashboard data */
   const [merchantData, setMerchantData] = useState<MerchantDataResponse | null>(null);
   const [merchantDataError, setMerchantDataError] = useState<string | null>(null);
-  const [showJsonModal, setShowJsonModal] = useState(false);
 
   useEffect(() => {
     setDashboardError(null);
@@ -965,6 +986,52 @@ export default function DashboardPage() {
       ? disputeOutcomeOverTimeChartFromMerchant.series
       : [{ dataKey: "value", name: "Count", stroke: "#6366f1" }];
 
+  // PayPal Reconciliation table from merchant_data (paypal_master.kpi – same as Balance Summary)
+  const paypalReconciliationTableColumns =
+    balanceSummaryFromMerchant.rows.length > 0
+      ? balanceSummaryFromMerchant.columns
+      : [
+          { key: "date", header: "Date" },
+          { key: "type", header: "Type" },
+          { key: "description", header: "Description" },
+          { key: "amount", header: "Amount", render: (v: unknown) => formatCurrency(Number(v)) },
+          { key: "balance", header: "Balance", render: (v: unknown) => formatCurrency(Number(v)) },
+          { key: "reference", header: "Reference" },
+        ];
+  const paypalReconciliationTableRows =
+    balanceSummaryFromMerchant.rows.length > 0
+      ? balanceSummaryFromMerchant.rows
+      : (data.paypalReconciliationSection?.reconciliationTable as unknown as Record<string, unknown>[]) ?? [];
+
+  // Merchant PayPal table in reconciliation section from merchant_data (paypal_master.merchant_paypal)
+  const paypalReconciliationMerchantPaypalRows =
+    merchantPaypalFromMerchant.rows.length > 0
+      ? merchantPaypalFromMerchant.rows
+      : (data.paypalReconciliationSection?.merchantPaypalTable as unknown as Record<string, unknown>[]) ?? [];
+
+  // Merchant PayPal Master table in reconciliation section from merchant_data (paypal_master.merchant_paypal, allowed columns)
+  const paypalReconciliationMerchantMasterRows =
+    merchantPaypalMasterFromMerchant.rows.length > 0
+      ? merchantPaypalMasterFromMerchant.rows
+      : (data.paypalReconciliationSection?.merchantPaypalMasterTable as unknown as Record<string, unknown>[]) ?? [];
+
+  // Merchant PayPal Statement table from merchant_data (paypal_statement.transformed_paypal_statemet)
+  const paypalStatementTableFromMerchant = getPaypalStatementTableFromMerchantData(merchantData);
+  const paypalStatementTableColumns =
+    paypalStatementTableFromMerchant.rows.length > 0
+      ? paypalStatementTableFromMerchant.columns
+      : [
+          { key: "date", header: "Date" },
+          { key: "description", header: "Description" },
+          { key: "type", header: "Type" },
+          { key: "amount", header: "Amount", render: (v: unknown) => formatCurrency(Number(v)) },
+          { key: "balance", header: "Balance", render: (v: unknown) => formatCurrency(Number(v)) },
+        ];
+  const paypalStatementTableRows =
+    paypalStatementTableFromMerchant.rows.length > 0
+      ? paypalStatementTableFromMerchant.rows
+      : (data.paypalStatement?.table as unknown as Record<string, unknown>[]) ?? [];
+
   // PayPal Dispute Delay By Currency from merchant_data (paypal_dispute.disputeDelay.byCurrency)
   const disputeDelayByCurrencyChartFromMerchant = getDisputeDelayByCurrencyChartFromMerchantData(merchantData);
   const paypalDisputeDelayByCurrencyChartData =
@@ -1020,15 +1087,6 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowJsonModal(true)}
-            className="shrink-0 border-theme-border text-theme-text-muted hover:text-theme-text hover:bg-theme-surface-elevated"
-            title="View merchant data API response (testing)"
-          >
-            View API response
-          </Button>
           <div className="flex items-center rounded-xl border border-theme-border bg-theme-surface shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-2.5 border-r border-theme-border">
               <Calendar className="h-4 w-4 shrink-0 text-theme-text-muted" aria-hidden />
@@ -1063,31 +1121,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-
-      <Modal
-        open={showJsonModal}
-        onClose={() => setShowJsonModal(false)}
-        title="Merchant Data API Response (testing)"
-        size="xl"
-      >
-        <div className="p-4">
-          {merchantData ? (
-            <pre className="max-h-[70vh] overflow-auto rounded-lg border border-theme-border bg-theme-bg-muted p-4 text-left text-sm text-theme-text whitespace-pre-wrap break-words font-mono">
-              {JSON.stringify(merchantData, null, 2)}
-            </pre>
-          ) : (
-            <div className="space-y-2 text-sm text-theme-text-muted">
-              <p>No response yet.</p>
-              {merchantDataError && (
-                <p className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3 text-amber-800 dark:text-amber-200 font-medium">
-                  {merchantDataError}
-                </p>
-              )}
-              <p>Check the browser console (F12 → Console) for more details.</p>
-            </div>
-          )}
-        </div>
-      </Modal>
 
       <SourceTabs selected={source} onSelect={setSource} />
 
@@ -1230,27 +1263,20 @@ export default function DashboardPage() {
                   <div className="grid gap-6 lg:grid-cols-1 xl:grid-cols-3">
                     <TableWithCsvDownload
                       title="PayPal Reconciliation"
-                      columns={[
-                        { key: "date", header: "Date" },
-                        { key: "type", header: "Type" },
-                        { key: "description", header: "Description" },
-                        { key: "amount", header: "Amount", render: (v) => formatCurrency(Number(v)) },
-                        { key: "balance", header: "Balance", render: (v) => formatCurrency(Number(v)) },
-                        { key: "reference", header: "Reference" },
-                      ]}
-                      rows={data.paypalReconciliationSection.reconciliationTable as unknown as Record<string, unknown>[]}
+                      columns={paypalReconciliationTableColumns}
+                      rows={paypalReconciliationTableRows}
                       filename="paypal-reconciliation.csv"
                     />
                     <TableWithCsvDownload
                       title="Merchant PayPal"
-                      columns={MERCHANT_PAYPAL_COLUMNS}
-                      rows={data.paypalReconciliationSection.merchantPaypalTable as unknown as Record<string, unknown>[]}
+                      columns={paypalMerchantPaypalColumns}
+                      rows={paypalReconciliationMerchantPaypalRows}
                       filename="merchant-paypal-reconciliation.csv"
                     />
                     <TableWithCsvDownload
                       title="Merchant PayPal Master"
-                      columns={MERCHANT_MASTER_COLUMNS}
-                      rows={data.paypalReconciliationSection.merchantPaypalMasterTable as unknown as Record<string, unknown>[]}
+                      columns={paypalMerchantMasterColumns}
+                      rows={paypalReconciliationMerchantMasterRows}
                       filename="merchant-paypal-master-reconciliation.csv"
                     />
                   </div>
@@ -1286,7 +1312,12 @@ export default function DashboardPage() {
             </section>
             <section className="space-y-6">
               <h2 className="text-lg font-semibold text-theme-text">PayPal Statement</h2>
-              <StatementTable rows={data.paypalStatement.table} />
+              <TableWithCsvDownload
+                title="Merchant PayPal Statement"
+                columns={paypalStatementTableColumns}
+                rows={paypalStatementTableRows}
+                filename="paypal-statement.csv"
+              />
             </section>
             <section className="space-y-6">
               <h2 className="text-lg font-semibold text-theme-text">Stripe</h2>
@@ -1486,28 +1517,21 @@ export default function DashboardPage() {
               <>
                 <div className="grid gap-6 lg:grid-cols-1 xl:grid-cols-3">
                   <TableWithCsvDownload
-                    title="PayPal Reconciliation"
-                    columns={[
-                      { key: "date", header: "Date" },
-                      { key: "type", header: "Type" },
-                      { key: "description", header: "Description" },
-                      { key: "amount", header: "Amount", render: (v) => formatCurrency(Number(v)) },
-                      { key: "balance", header: "Balance", render: (v) => formatCurrency(Number(v)) },
-                      { key: "reference", header: "Reference" },
-                    ]}
-                    rows={data.paypalReconciliationSection.reconciliationTable as unknown as Record<string, unknown>[]}
-                    filename="paypal-reconciliation.csv"
+                      title="PayPal Reconciliation"
+                      columns={paypalReconciliationTableColumns}
+                      rows={paypalReconciliationTableRows}
+                      filename="paypal-reconciliation.csv"
                   />
                   <TableWithCsvDownload
                     title="Merchant PayPal"
-                    columns={MERCHANT_PAYPAL_COLUMNS}
-                    rows={data.paypalReconciliationSection.merchantPaypalTable as unknown as Record<string, unknown>[]}
+                    columns={paypalMerchantPaypalColumns}
+                    rows={paypalReconciliationMerchantPaypalRows}
                     filename="merchant-paypal-reconciliation.csv"
                   />
                   <TableWithCsvDownload
                     title="Merchant PayPal Master"
-                    columns={MERCHANT_MASTER_COLUMNS}
-                    rows={data.paypalReconciliationSection.merchantPaypalMasterTable as unknown as Record<string, unknown>[]}
+                    columns={paypalMerchantMasterColumns}
+                    rows={paypalReconciliationMerchantMasterRows}
                     filename="merchant-paypal-master-reconciliation.csv"
                   />
                 </div>
@@ -1546,7 +1570,12 @@ export default function DashboardPage() {
         {source === "paypal_statement" && (
           <section className="space-y-6">
             <h2 className="text-lg font-semibold text-theme-text">PayPal Statement</h2>
-            <StatementTable rows={data.paypalStatement.table} />
+            <TableWithCsvDownload
+              title="Merchant PayPal Statement"
+              columns={paypalStatementTableColumns}
+              rows={paypalStatementTableRows}
+              filename="paypal-statement.csv"
+            />
           </section>
         )}
 
