@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+/* Light mode (default) */
+:root,
+.light {
+  --theme-bg: #ffffff;
+  --theme-bg-muted: #f8fafc;
+  --theme-surface: #ffffff;
+  --theme-surface-elevated: #f1f5f9;
+  --theme-border: #e2e8f0;
+  --theme-border-muted: #f1f5f9;
+  --theme-text: #0f172a;
+  --theme-text-muted: #64748b;
+  --theme-accent: #1e40af;
+  --theme-accent-foreground: #ffffff;
+  --background: #ffffff;
+  --foreground: #0f172a;
+}
+
+/* Dark mode – deep indigo base with cyan accent */
+.dark {
+  --theme-bg: #0c0a1d;
+  --theme-bg-muted: #12102a;
+  --theme-surface: #16142e;
+  --theme-surface-elevated: #1e1b3a;
+  --theme-border: #2d2a52;
+  --theme-border-muted: #1a1835;
+  --theme-text: #f1f5f9;
+  --theme-text-muted: #94a3b8;
+  --theme-accent: #0ea5e9;
+  --theme-accent-foreground: #ffffff;
+  --background: #0c0a1d;
+  --foreground: #f1f5f9;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-theme-bg: var(--theme-bg);
+  --color-theme-bg-muted: var(--theme-bg-muted);
+  --color-theme-surface: var(--theme-surface);
+  --color-theme-surface-elevated: var(--theme-surface-elevated);
+  --color-theme-border: var(--theme-border);
+  --color-theme-border-muted: var(--theme-border-muted);
+  --color-theme-text: var(--theme-text);
+  --color-theme-text-muted: var(--theme-text-muted);
+  --color-theme-accent: var(--theme-accent);
+  --color-theme-accent-foreground: var(--theme-accent-foreground);
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, monospace;
+}
+
+body {
+  background: var(--theme-bg);
+  color: var(--theme-text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
