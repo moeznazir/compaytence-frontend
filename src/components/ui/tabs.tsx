@@ -13,12 +13,17 @@ interface TabsProps {
   tabs: TabItem[];
   children: React.ReactNode;
   defaultIndex?: number;
+  selectedIndex?: number;
   onChange?: (index: number) => void;
 }
 
-export function Tabs({ tabs, children, defaultIndex = 0, onChange }: TabsProps) {
+export function Tabs({ tabs, children, defaultIndex = 0, selectedIndex, onChange }: TabsProps) {
   return (
-    <Tab.Group defaultIndex={defaultIndex} onChange={onChange}>
+    <Tab.Group
+      defaultIndex={defaultIndex}
+      selectedIndex={selectedIndex}
+      onChange={onChange}
+    >
       <Tab.List className="flex gap-1 border-b border-theme-border">
         {tabs.map((tab) => (
           <Tab

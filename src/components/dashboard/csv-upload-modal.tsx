@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { Upload, Loader2, FileText, X, CheckCircle } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Upload, Loader2, FileText, X, CheckCircle, PlusCircle, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { transformCsvData } from "@/lib/api/csv";
+import { Tabs, TabPanel } from "@/components/ui/tabs";
+import { transformCsvData, uploadData, type TransformTableResult } from "@/lib/api/csv";
 import { toast } from "sonner";
 
 export const CSV_FILE_TYPES = [
@@ -75,8 +76,11 @@ export function CsvUploadModal({ open, onClose, onSuccess }: CsvUploadModalProps
   const [file, setFile] = useState<File | null>(null);
   const [rawCsvLines, setRawCsvLines] = useState<string[][] | null>(null);
   const [headerRowIndex, setHeaderRowIndex] = useState(1); // 1-based: row 1, 2, 3...
+  const [transforming, setTransforming] = useState(false);
+  const [transformedData, setTransformedData] = useState<TransformTableResult | null>(null);
+  const [selectedRowIndices, setSelectedRowIndices] = useState<Set<number>>(new Set());
+  const [dataTabIndex, setDataTabIndex] = useState(0); // 0 = All data, 1 = Selected records
   const [uploading, setUploading] = useState(false);
-  const [uploaded, setUploaded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const parsedData = rawCsvLines
@@ -88,13 +92,50 @@ export function CsvUploadModal({ open, onClose, onSuccess }: CsvUploadModalProps
     setFile(null);
     setRawCsvLines(null);
     setHeaderRowIndex(1);
-    setUploading(false);
-    setUploaded(false);
+    setTransforming(false);
+    setTransformedData(null);
+    setSelectedRowIndices(new Set());
+    setDataTabIndex(0);
     if (inputRef.current) inputRef.current.value = "";
   }, []);
 
+  // Auto-call transform API when type + file + header row are set and we have rows
+  useEffect(() => {
+    if (!selectedType || !file || !rawCsvLines) {
+      setTransformedData(null);
+      return;
+    }
+    const parsed = buildTableFromRawLines(rawCsvLines, headerRowIndex);
+    if (!parsed.rows.length) {
+      setTransformedData(null);
+      return;
+    }
+    let cancelled = false;
+    setTransforming(true);
+    setTransformedData(null);
+    setSelectedRowIndices(new Set());
+    transformCsvData(parsed.rows, selectedType)
+      .then((result) => {
+        if (!cancelled) {
+          setTransformedData(result);
+          setTransforming(false);
+          toast.success("Headers translated to English.");
+          onSuccess?.();
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setTransforming(false);
+          toast.error(err instanceof Error ? err.message : "Transform failed");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedType, file, rawCsvLines, headerRowIndex]);
+
   const handleClose = () => {
-    if (!uploading) {
+    if (!transforming && !uploading) {
       reset();
       onClose();
     }
@@ -139,62 +180,73 @@ export function CsvUploadModal({ open, onClose, onSuccess }: CsvUploadModalProps
     : 0;
 
   const selectedTypeLabel = CSV_FILE_TYPES.find((t) => t.value === selectedType)?.label ?? "";
-  const canUpload = selectedType && file && !uploading && !uploaded;
 
-  const handleUpload = async () => {
-    if (!file || !selectedType || !parsedData) return;
+  const toggleRowSelection = (index: number) => {
+    setSelectedRowIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  const selectAllRows = () => {
+    if (!transformedData?.rows.length) return;
+    setSelectedRowIndices(new Set(transformedData.rows.map((_, i) => i)));
+  };
+
+  const clearSelection = () => setSelectedRowIndices(new Set());
+
+  /** Remove one row from selection (by original index). */
+  const removeSelectedRecord = (originalIndex: number) => {
+    setSelectedRowIndices((prev) => {
+      const next = new Set(prev);
+      next.delete(originalIndex);
+      return next;
+    });
+  };
+
+  const selectedRowsWithIndex = transformedData
+    ? transformedData.rows
+        .map((row, i) => ({ row, originalIndex: i }))
+        .filter(({ originalIndex }) => selectedRowIndices.has(originalIndex))
+    : [];
+
+  const handleUploadSelected = async () => {
+    if (!selectedType || !transformedData || selectedRowIndices.size === 0) return;
+    const rowsToUpload = selectedRowsWithIndex.map(({ row }) => row);
     setUploading(true);
     try {
-      await transformCsvData(parsedData.rows, selectedType);
-      toast.success(`CSV uploaded as ${selectedTypeLabel}`);
-      setUploading(false);
-      setUploaded(true);
+      await uploadData(rowsToUpload, selectedType);
+      toast.success(`Uploaded ${rowsToUpload.length} record(s) successfully.`);
       onSuccess?.();
+      handleClose();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Upload failed";
       toast.error(message);
-      setUploading(false);
     } finally {
-      if (inputRef.current) inputRef.current.value = "";
+      setUploading(false);
     }
   };
-
-  const displayData = uploaded ? parsedData : null;
 
   return (
     <Modal
       open={open}
       onClose={handleClose}
-      title={uploaded ? "Upload complete" : "Upload CSV"}
+      title="Upload CSV"
       size="xl"
-      showClose={!uploading}
+      showClose={!transforming && !uploading}
       footer={
-        uploaded ? (
-          <div className="flex justify-end">
-            <Button onClick={handleClose}>Done</Button>
-          </div>
-        ) : (
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleClose} disabled={uploading}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpload} disabled={!canUpload}>
-              {uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Uploading…
-                </>
-              ) : (
-                "Upload"
-              )}
-            </Button>
-          </div>
-        )
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={handleClose} disabled={transforming || uploading}>
+            Cancel
+          </Button>
+          <Button onClick={handleClose}>Done</Button>
+        </div>
       }
     >
       <div className="space-y-8">
-        {!uploaded ? (
-          <>
+        <>
             {/* Step 1: File type */}
             <section className="space-y-3">
               <div className="flex items-center gap-2">
@@ -215,7 +267,7 @@ export function CsvUploadModal({ open, onClose, onSuccess }: CsvUploadModalProps
                         value={opt.value}
                         checked={selectedType === opt.value}
                         onChange={() => setSelectedType(opt.value)}
-                        disabled={uploading}
+                        disabled={transforming}
                         className="h-4 w-4 border-theme-border text-theme-accent focus:ring-theme-accent"
                       />
                       <span className="text-sm text-theme-text">{opt.label}</span>
@@ -261,7 +313,7 @@ export function CsvUploadModal({ open, onClose, onSuccess }: CsvUploadModalProps
                         variant="ghost"
                         size="sm"
                         onClick={removeFile}
-                        disabled={uploading}
+                        disabled={transforming}
                         className="shrink-0 text-theme-text-muted hover:text-theme-text"
                         aria-label="Remove file"
                       >
@@ -296,9 +348,9 @@ export function CsvUploadModal({ open, onClose, onSuccess }: CsvUploadModalProps
               </div>
             </section>
 
-            {/* Step 3: Choose header row + preview data before upload */}
+            {/* Step 3: Header row → auto-transform → table with row selection + Selected records */}
             {selectedType && file && rawCsvLines && (
-              <section className="space-y-3">
+              <section className="space-y-4">
                 <div className="flex items-center gap-2">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-theme-accent/15 text-sm font-semibold text-theme-accent">
                     3
@@ -318,6 +370,7 @@ export function CsvUploadModal({ open, onClose, onSuccess }: CsvUploadModalProps
                       onChange={(e) => setHeaderRowIndex(Number(e.target.value))}
                       className="rounded-lg border border-theme-border bg-theme-surface px-3 py-1.5 text-sm text-theme-text focus:outline-none focus:ring-2 focus:ring-theme-accent"
                       aria-label="Header row"
+                      disabled={transforming}
                     >
                       {Array.from({ length: headerRowOptions }, (_, i) => i + 1).map((n) => (
                         <option key={n} value={n}>
@@ -327,121 +380,199 @@ export function CsvUploadModal({ open, onClose, onSuccess }: CsvUploadModalProps
                       ))}
                     </select>
                     <span className="text-xs text-theme-text-muted">
-                      Some files have title lines; pick the row that contains column names.
+                      Headers are translated to English automatically.
                     </span>
                   </div>
-                  <p className="text-sm text-theme-text-muted">
-                    Preview below. Upload when it looks correct.
-                  </p>
                 </div>
                 <div className="pl-9">
-                  {parsedData && parsedData.rows.length > 0 ? (
-                    <div className="rounded-xl border border-theme-border overflow-hidden">
-                      <div className="max-h-[40vh] overflow-auto">
-                        <table className="w-full text-left text-sm">
-                          <thead className="sticky top-0 z-10 border-b border-theme-border bg-theme-surface-elevated">
-                            <tr>
-                              {parsedData.headers.map((h, i) => (
-                                <th
-                                  key={`header-${i}`}
-                                  className="whitespace-nowrap px-4 py-3 font-medium text-theme-text"
-                                >
-                                  {h}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-theme-border">
-                            {parsedData.rows.slice(0, 100).map((row, i) => (
-                              <tr
-                                key={i}
-                                className="bg-theme-surface hover:bg-theme-surface-elevated/50"
-                              >
-                                {parsedData.headers.map((key, colIndex) => (
-                                  <td
-                                    key={`cell-${colIndex}`}
-                                    className="whitespace-nowrap px-4 py-2.5 text-theme-text"
-                                  >
-                                    {row[key] ?? "—"}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      {parsedData.rows.length > 100 && (
-                        <div className="border-t border-theme-border bg-theme-surface-elevated px-4 py-2 text-xs text-theme-text-muted">
-                          Showing first 100 of {parsedData.rows.length} rows
-                        </div>
-                      )}
+                  {transforming ? (
+                    <div className="flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-surface-elevated/50 py-12">
+                      <Loader2 className="h-6 w-6 animate-spin text-theme-accent" />
+                      <span className="text-sm text-theme-text-muted">Translating headers…</span>
                     </div>
-                  ) : (
+                  ) : parsedData && parsedData.rows.length === 0 ? (
                     <p className="rounded-lg border border-theme-border bg-theme-surface-elevated/50 px-4 py-3 text-sm text-theme-text-muted">
                       No data rows in this file (header only or empty).
                     </p>
-                  )}
+                  ) : transformedData && transformedData.rows.length > 0 ? (
+                    <Tabs
+                      tabs={[
+                        { id: "all", label: "All data", count: transformedData.rows.length },
+                        { id: "selected", label: "Selected records", count: selectedRowIndices.size },
+                      ]}
+                      selectedIndex={dataTabIndex}
+                      onChange={setDataTabIndex}
+                    >
+                      <TabPanel>
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={selectAllRows}>
+                              Select all
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={clearSelection}>
+                              Clear selection
+                            </Button>
+                            {selectedRowIndices.size > 0 && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setDataTabIndex(1)}
+                                className="gap-1.5"
+                              >
+                                View selected ({selectedRowIndices.size})
+                              </Button>
+                            )}
+                          </div>
+                          <div className="rounded-xl border border-theme-border overflow-hidden">
+                            <div className="max-h-[40vh] overflow-auto">
+                              <table className="w-full text-left text-sm">
+                                <thead className="sticky top-0 z-10 border-b border-theme-border bg-theme-surface-elevated">
+                                  <tr>
+                                    <th className="w-10 px-2 py-3">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedRowIndices.size === transformedData.rows.length}
+                                        ref={(el) => {
+                                          if (el) el.indeterminate = selectedRowIndices.size > 0 && selectedRowIndices.size < transformedData.rows.length;
+                                        }}
+                                        onChange={() =>
+                                          selectedRowIndices.size === transformedData.rows.length
+                                            ? clearSelection()
+                                            : selectAllRows()
+                                        }
+                                        className="h-4 w-4 rounded border-theme-border text-theme-accent focus:ring-theme-accent"
+                                        aria-label="Select all rows"
+                                      />
+                                    </th>
+                                    {transformedData.headers.map((h, i) => (
+                                      <th
+                                        key={`header-${i}`}
+                                        className="whitespace-nowrap px-4 py-3 font-medium text-theme-text"
+                                      >
+                                        {h}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-theme-border">
+                                  {transformedData.rows.map((row, i) => (
+                                    <tr
+                                      key={i}
+                                      className={`bg-theme-surface hover:bg-theme-surface-elevated/50 ${selectedRowIndices.has(i) ? "bg-theme-accent/5" : ""}`}
+                                    >
+                                      <td className="w-10 px-2 py-2.5">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedRowIndices.has(i)}
+                                          onChange={() => toggleRowSelection(i)}
+                                          className="h-4 w-4 rounded border-theme-border text-theme-accent focus:ring-theme-accent"
+                                          aria-label={`Select row ${i + 1}`}
+                                        />
+                                      </td>
+                                      {transformedData.headers.map((key, colIndex) => (
+                                        <td
+                                          key={`cell-${colIndex}`}
+                                          className="whitespace-nowrap px-4 py-2.5 text-theme-text"
+                                        >
+                                          {row[key] ?? "—"}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      </TabPanel>
+                      <TabPanel>
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDataTabIndex(0)}
+                              className="gap-1.5"
+                            >
+                              <PlusCircle className="h-4 w-4" />
+                              Add more records
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleUploadSelected}
+                              disabled={selectedRowIndices.size === 0 || uploading}
+                              className="gap-1.5"
+                            >
+                              {uploading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Upload className="h-4 w-4" />
+                              )}
+                              Upload ({selectedRowIndices.size})
+                            </Button>
+                          </div>
+                          {selectedRowsWithIndex.length > 0 ? (
+                            <div className="rounded-xl border border-theme-border overflow-hidden">
+                              <div className="max-h-[40vh] overflow-auto">
+                                <table className="w-full text-left text-sm">
+                                  <thead className="sticky top-0 z-10 border-b border-theme-border bg-theme-surface-elevated">
+                                    <tr>
+                                      <th className="w-12 px-2 py-3 text-theme-text-muted">Remove</th>
+                                      {transformedData.headers.map((h, i) => (
+                                        <th
+                                          key={`sel-header-${i}`}
+                                          className="whitespace-nowrap px-4 py-3 font-medium text-theme-text"
+                                        >
+                                          {h}
+                                        </th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-theme-border">
+                                    {selectedRowsWithIndex.map(({ row, originalIndex }) => (
+                                      <tr key={originalIndex} className="bg-theme-surface hover:bg-theme-surface-elevated/50">
+                                        <td className="w-12 px-2 py-2.5">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => removeSelectedRecord(originalIndex)}
+                                            className="h-8 w-8 p-0 text-theme-text-muted hover:text-theme-text"
+                                            aria-label="Remove from selection"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </td>
+                                        {transformedData.headers.map((key, colIndex) => (
+                                          <td
+                                            key={`sel-cell-${colIndex}`}
+                                            className="whitespace-nowrap px-4 py-2.5 text-theme-text"
+                                          >
+                                            {row[key] ?? "—"}
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="rounded-xl border border-theme-border bg-theme-surface-elevated/50 py-8 text-center text-sm text-theme-text-muted">
+                              No records selected. Switch to &quot;All data&quot; to select rows.
+                            </div>
+                          )}
+                        </div>
+                      </TabPanel>
+                    </Tabs>
+                  ) : parsedData?.rows.length ? (
+                    <div className="flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-surface-elevated/50 py-8 text-sm text-theme-text-muted">
+                      Waiting for translation…
+                    </div>
+                  ) : null}
                 </div>
               </section>
             )}
           </>
-        ) : (
-          /* Post-upload: success + table */
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 rounded-lg border border-theme-border bg-theme-accent/10 px-4 py-3 text-theme-text">
-              <CheckCircle className="h-5 w-5 shrink-0 text-theme-accent" />
-              <span className="text-sm font-medium">
-                Your file was uploaded as {selectedTypeLabel}. Here’s a preview of the data.
-              </span>
-            </div>
-            {displayData && displayData.rows.length > 0 ? (
-              <div className="rounded-xl border border-theme-border overflow-hidden">
-                <div className="max-h-[50vh] overflow-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="sticky top-0 z-10 border-b border-theme-border bg-theme-surface-elevated">
-                      <tr>
-                        {displayData.headers.map((h, i) => (
-                          <th
-                            key={`header-${i}`}
-                            className="whitespace-nowrap px-4 py-3 font-medium text-theme-text"
-                          >
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-theme-border">
-                      {displayData.rows.slice(0, 100).map((row, i) => (
-                        <tr
-                          key={i}
-                          className="bg-theme-surface hover:bg-theme-surface-elevated/50"
-                        >
-                          {displayData.headers.map((key, colIndex) => (
-                            <td
-                              key={`cell-${colIndex}`}
-                              className="whitespace-nowrap px-4 py-2.5 text-theme-text"
-                            >
-                              {row[key] ?? "—"}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {displayData.rows.length > 100 && (
-                  <div className="border-t border-theme-border bg-theme-surface-elevated px-4 py-2 text-xs text-theme-text-muted">
-                    Showing first 100 of {displayData.rows.length} rows
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm text-theme-text-muted">
-                No table data to display (file may be empty or header-only).
-              </p>
-            )}
-          </section>
-        )}
       </div>
     </Modal>
   );
