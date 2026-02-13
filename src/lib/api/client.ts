@@ -7,6 +7,14 @@ function delay(ms: number = MOCK_DELAY) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** On 401, log out the user and throw. Call after fetch, before reading body. */
+export function ensureAuthorized(res: Response): void {
+  if (res.status === 401) {
+    useAuthStore.getState().logout();
+    throw new Error("Session expired. Please log in again.");
+  }
+}
+
 export async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -23,6 +31,7 @@ export async function apiClient<T>(
     ...options,
     headers,
   });
+  ensureAuthorized(res);
   if (!res.ok) {
     const message = await parseFetchError(res, "Request failed");
     throw new Error(message);

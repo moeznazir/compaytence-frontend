@@ -1,4 +1,5 @@
 import { parseApiError } from "./errors";
+import { ensureAuthorized } from "./client";
 
 const MERCHANT_DATA_API =
   "https://xkt8-uti5-g3tj.n7e.xano.io/api:6xe0tZ0a/merchant_data_dev";
@@ -47,11 +48,12 @@ export async function getMerchantData(
   const res = await fetch(`${MERCHANT_DATA_API}?${search}`, {
     method: "GET",
     headers: {
-      Authorization: token.startsWith("Bearer ") ? token : token,
+      Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
       "Content-Type": "application/json",
     },
   });
 
+  ensureAuthorized(res);
   const text = await res.text();
   if (!res.ok) {
     let data: unknown = null;

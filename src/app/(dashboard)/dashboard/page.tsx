@@ -10,6 +10,7 @@ import {
   BarChart3,
   FileText,
   Calendar,
+  Upload,
 } from "lucide-react";
 import { getDashboardSourceData } from "@/lib/api/dashboard";
 import { getMerchantData, type MerchantDataResponse } from "@/lib/api/merchant-data";
@@ -29,6 +30,8 @@ import {
 import { SourceLineChart } from "@/components/dashboard/source-charts";
 import { TableWithCsvDownload, type TableColumn } from "@/components/dashboard/table-with-csv-download";
 import { LineGraphWithImageDownload, type LineSeriesConfig } from "@/components/dashboard/line-graph-with-image-download";
+import { CsvUploadModal } from "@/components/dashboard/csv-upload-modal";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 function formatCurrency(value: number, currency = "USD") {
@@ -804,6 +807,7 @@ export default function DashboardPage() {
   /** Merchant data API response – for dashboard data */
   const [merchantData, setMerchantData] = useState<MerchantDataResponse | null>(null);
   const [merchantDataError, setMerchantDataError] = useState<string | null>(null);
+  const [csvUploadOpen, setCsvUploadOpen] = useState(false);
 
   useEffect(() => {
     setDashboardError(null);
@@ -1119,8 +1123,25 @@ export default function DashboardPage() {
             ))}
           </select>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCsvUploadOpen(true)}
+            className="shrink-0 gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Upload CSV
+          </Button>
         </div>
       </div>
+
+      <CsvUploadModal
+        open={csvUploadOpen}
+        onClose={() => setCsvUploadOpen(false)}
+        onSuccess={() => {
+          // Optionally refetch dashboard/merchant data after upload
+        }}
+      />
 
       <SourceTabs selected={source} onSelect={setSource} />
 

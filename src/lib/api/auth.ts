@@ -1,6 +1,6 @@
 import type { User, UserRole } from "@/lib/types";
 import { parseApiError } from "./errors";
-import { mockGet, mockPost } from "./client";
+import { mockGet, mockPost, ensureAuthorized } from "./client";
 
 const LOGIN_API_URL = "https://xkt8-uti5-g3tj.n7e.xano.io/api:FofqTbkb/auth/login";
 const AUTH_ME_API_URL = "https://xkt8-uti5-g3tj.n7e.xano.io/api:FofqTbkb/auth/me";
@@ -124,11 +124,12 @@ export async function getMe(token: string): Promise<User> {
   const res = await fetch(AUTH_ME_API_URL, {
     method: "GET",
     headers: {
-      Authorization: token.startsWith("Bearer ") ? token : token,
+      Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
       "Content-Type": "application/json",
     },
   });
 
+  ensureAuthorized(res);
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
