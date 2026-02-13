@@ -7,13 +7,10 @@ function delay(ms: number = MOCK_DELAY) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** On 401, log out the user and throw. Call after fetch, before reading body. */
-export function ensureAuthorized(res: Response): void {
-  if (res.status === 401) {
-    useAuthStore.getState().logout();
-    throw new Error("Session expired. Please log in again.");
-  }
-}
+import { ensureAuthorized } from "./external-client";
+
+/** Re-export for consumers that only need 401 handling (e.g. legacy call sites). */
+export { ensureAuthorized };
 
 export async function apiClient<T>(
   endpoint: string,

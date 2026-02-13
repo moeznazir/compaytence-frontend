@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { exportElementAsPng } from "@/lib/utils/export-chart-image";
 import type { SourceChartPoint } from "@/lib/types";
+import { defaultSeriesStroke, chartStyle } from "@/lib/theme";
 import { cn } from "@/lib/utils/cn";
 
 /** Chart data: must have period; value or series keys for values */
@@ -29,7 +30,7 @@ export interface LineSeriesConfig {
 }
 
 const tooltipStyle = {
-  backgroundColor: "#fff",
+  backgroundColor: chartStyle.tooltipBg,
   border: "none",
   borderRadius: "12px",
   boxShadow: "0 10px 40px -10px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.05)",
@@ -54,7 +55,7 @@ function sanitizeGradientId(key: string): string {
 export function LineGraphWithImageDownload({
   title,
   data,
-  series = [{ dataKey: "value", name: "Value", stroke: "#6366f1" }],
+  series = [{ dataKey: "value", name: "Value", stroke: defaultSeriesStroke }],
   filename,
   className,
 }: LineGraphWithImageDownloadProps) {
@@ -101,24 +102,24 @@ export function LineGraphWithImageDownload({
                   </linearGradient>
                 ))}
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} strokeOpacity={0.8} />
+              <CartesianGrid strokeDasharray="3 3" stroke={chartStyle.gridStroke} vertical={false} strokeOpacity={0.8} />
               <XAxis
                 dataKey="period"
-                tick={{ fill: "#64748b", fontSize: 12, fontWeight: 500 }}
-                axisLine={{ stroke: "#e2e8f0" }}
+                tick={{ fill: chartStyle.tickFill, fontSize: 12, fontWeight: 500 }}
+                axisLine={{ stroke: chartStyle.axisLineStroke }}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: "#64748b", fontSize: 12, fontWeight: 500 }}
+                tick={{ fill: chartStyle.tickFill, fontSize: 12, fontWeight: 500 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => (typeof v === "number" && v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v))}
               />
               <Tooltip
                 contentStyle={tooltipStyle}
-                cursor={{ stroke: "#94a3b8", strokeWidth: 1, strokeDasharray: "4 4" }}
+                cursor={{ stroke: chartStyle.cursorStroke, strokeWidth: 1, strokeDasharray: "4 4" }}
                 formatter={(value: unknown, name: string) => [typeof value === "number" ? value.toLocaleString() : String(value ?? ""), name]}
-                labelStyle={{ color: "#475569", fontWeight: 600, marginBottom: 4 }}
+                labelStyle={{ color: chartStyle.labelFill, fontWeight: 600, marginBottom: 4 }}
               />
               <Legend
                 wrapperStyle={{ paddingTop: 8 }}

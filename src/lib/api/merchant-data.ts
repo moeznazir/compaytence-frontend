@@ -1,8 +1,4 @@
-import { parseApiError } from "./errors";
-import { ensureAuthorized } from "./client";
-
-const MERCHANT_DATA_API =
-  "https://xkt8-uti5-g3tj.n7e.xano.io/api:6xe0tZ0a/merchant_data_dev";
+import { externalGet } from "./external-client";
 
 export interface MerchantDataParams {
   record_currency: string;
@@ -45,26 +41,10 @@ export async function getMerchantData(
     merchant_id: params.merchant_id,
   }).toString();
 
-  const res = await fetch(`${MERCHANT_DATA_API}?${search}`, {
-    method: "GET",
-    headers: {
-      Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+  const path = `/merchant_data_dev?${search}`;
+  const data = await externalGet<MerchantDataResponse>("xanoData", path, {
+    token,
+    errorFallback: "Merchant data request failed",
   });
-
-  ensureAuthorized(res);
-  const text = await res.text();
-  if (!res.ok) {
-    let data: unknown = null;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = null;
-    }
-    const message = parseApiError(data, res.statusText || "Merchant data request failed");
-    throw new Error(message);
-  }
-  const data = text ? (JSON.parse(text) as MerchantDataResponse) : {};
-  return data;
+  return data ?? ({} as MerchantDataResponse);
 }

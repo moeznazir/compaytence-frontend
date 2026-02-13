@@ -1,9 +1,6 @@
 import type { User, UserRole } from "@/lib/types";
-import { parseApiError } from "./errors";
-import { mockGet, mockPost, ensureAuthorized } from "./client";
-
-const LOGIN_API_URL = "https://xkt8-uti5-g3tj.n7e.xano.io/api:FofqTbkb/auth/login";
-const AUTH_ME_API_URL = "https://xkt8-uti5-g3tj.n7e.xano.io/api:FofqTbkb/auth/me";
+import { mockGet, mockPost } from "./client";
+import { externalGet, externalPost } from "./external-client";
 
 const MOCK_USER: User = {
   id: "u1",
@@ -47,38 +44,20 @@ function mapApiUserToUser(apiUser: Record<string, unknown>): User {
 }
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
-  const res = await fetch(LOGIN_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: payload.email,
-      password: payload.password,
-    }),
-  });
+  const body = await externalPost<Record<string, unknown>>(
+    "xanoAuth",
+    "/auth/login",
+    { email: payload.email, password: payload.password },
+    { auth: false, skipEnsureAuthorized: true, errorFallback: "Invalid email or password" }
+  );
 
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    const message = parseApiError(data, res.statusText || "Invalid email or password");
-    throw new Error(message);
-  }
-
-  const body = data as {
-    token?: string;
-    authToken?: string;
-    auth_token?: string;
-    access_token?: string;
-    user?: Record<string, unknown>;
-    id?: unknown;
-    email?: string;
-    name?: string;
-  };
+  const obj = body && typeof body === "object" ? body : {};
   const token =
-    body.token ?? body.authToken ?? body.auth_token ?? body.access_token ?? "";
+    (obj.token ?? obj.authToken ?? obj.auth_token ?? obj.access_token ?? "") as string;
   const apiUser =
-    typeof body.user === "object" && body.user !== null
-      ? body.user
-      : { ...body, email: payload.email };
+    typeof obj.user === "object" && obj.user !== null
+      ? (obj.user as Record<string, unknown>)
+      : ({ ...obj, email: payload.email } as Record<string, unknown>);
   const user = mapApiUserToUser(apiUser);
   if (!user.email) user.email = payload.email;
 
@@ -121,22 +100,10 @@ export async function resetPassword(payload: {
  * Call after login to get full user (e.g. company_id) from the backend.
  */
 export async function getMe(token: string): Promise<User> {
-  const res = await fetch(AUTH_ME_API_URL, {
-    method: "GET",
-    headers: {
-      Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+  const data = await externalGet<Record<string, unknown>>("xanoAuth", "/auth/me", {
+    token,
+    errorFallback: "Failed to load user",
   });
-
-  ensureAuthorized(res);
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    const message = parseApiError(data, res.statusText || "Failed to load user");
-    throw new Error(message);
-  }
-
   const apiUser = (typeof data === "object" && data !== null ? data : {}) as Record<string, unknown>;
   return mapApiUserToUser(apiUser);
 }

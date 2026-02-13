@@ -32,6 +32,14 @@ import { TableWithCsvDownload, type TableColumn } from "@/components/dashboard/t
 import { LineGraphWithImageDownload, type LineSeriesConfig } from "@/components/dashboard/line-graph-with-image-download";
 import { CsvUploadModal } from "@/components/dashboard/csv-upload-modal";
 import { Button } from "@/components/ui/button";
+import {
+  chartColors,
+  chartPalette,
+  chartCurrency,
+  chartCaseReason,
+  defaultSeriesStroke,
+  iconColors,
+} from "@/lib/theme";
 import { toast } from "sonner";
 
 function formatCurrency(value: number, currency = "USD") {
@@ -48,28 +56,28 @@ function getKpisForSource(
 ): SectionKpiMetric[] {
   const overview = [
     {
-      icon: <TrendingUp className="h-5 w-5 text-blue-400" />,
+      icon: <TrendingUp className={`h-5 w-5 ${iconColors.blue}`} />,
       value: "€8,139.38",
       label: "Total Sales",
       trendText: "+12.5% from last period",
       trend: "up" as const,
     },
     {
-      icon: <AlertCircle className="h-5 w-5 text-amber-400" />,
+      icon: <AlertCircle className={`h-5 w-5 ${iconColors.amber}`} />,
       value: "€4,296.79",
       label: "Risk Volume",
       trendText: "53.26% from last period",
       trend: "up" as const,
     },
     {
-      icon: <RotateCcw className="h-5 w-5 text-purple-400" />,
+      icon: <RotateCcw className={`h-5 w-5 ${iconColors.purple}`} />,
       value: "53.25%",
       label: "Refund Rate",
       trendText: "-2.1% from last period",
       trend: "down" as const,
     },
     {
-      icon: <RefreshCw className="h-5 w-5 text-cyan-400" />,
+      icon: <RefreshCw className={`h-5 w-5 ${iconColors.cyan}`} />,
       value: "0.01%",
       label: "Dispute Rate",
       trendText: "0.00% from last period",
@@ -84,28 +92,28 @@ function getKpisForSource(
     const lastChart = data.paypalBalance.chart?.slice(-1)?.[0]?.value ?? 0;
     return [
       {
-        icon: <Wallet className="h-5 w-5 text-blue-400" />,
+        icon: <Wallet className={`h-5 w-5 ${iconColors.blue}`} />,
         value: formatCurrency(total),
         label: "Total Balance",
         trendText: "+12.5% from last period",
         trend: "up" as const,
       },
       {
-        icon: <AlertCircle className="h-5 w-5 text-amber-400" />,
+        icon: <AlertCircle className={`h-5 w-5 ${iconColors.amber}`} />,
         value: formatCurrency(lastChart * 0.05),
         label: "Volume at Risk",
         trendText: "-10.8% from last period",
         trend: "up" as const,
       },
       {
-        icon: <BarChart3 className="h-5 w-5 text-purple-400" />,
+        icon: <BarChart3 className={`h-5 w-5 ${iconColors.purple}`} />,
         value: "13%",
         label: "Rolling Reserve",
         trendText: "-0.5% from last period",
         trend: "down" as const,
       },
       {
-        icon: <Calendar className="h-5 w-5 text-cyan-400" />,
+        icon: <Calendar className={`h-5 w-5 ${iconColors.cyan}`} />,
         value: "3.5 days",
         label: "Dispute Delay",
         trendText: "-0.4 days from last period",
@@ -119,28 +127,28 @@ function getKpisForSource(
     const resolved = data.paypalDispute.table.filter((r) => r.status === "Resolved").length;
     return [
       {
-        icon: <AlertCircle className="h-5 w-5 text-blue-400" />,
+        icon: <AlertCircle className={`h-5 w-5 ${iconColors.blue}`} />,
         value: String(data.paypalDispute.table.length),
         label: "Total Disputes",
         trendText: "+4.2% from last period",
         trend: "up" as const,
       },
       {
-        icon: <AlertCircle className="h-5 w-5 text-amber-400" />,
+        icon: <AlertCircle className={`h-5 w-5 ${iconColors.amber}`} />,
         value: String(open),
         label: "Open",
         trendText: "Active",
         trend: "neutral" as const,
       },
       {
-        icon: <TrendingUp className="h-5 w-5 text-green-400" />,
+        icon: <TrendingUp className={`h-5 w-5 ${iconColors.green}`} />,
         value: String(resolved),
         label: "Resolved",
         trendText: "+2.1% from last period",
         trend: "up" as const,
       },
       {
-        icon: <Wallet className="h-5 w-5 text-cyan-400" />,
+        icon: <Wallet className={`h-5 w-5 ${iconColors.cyan}`} />,
         value: formatCurrency(data.paypalDispute.table.reduce((s, r) => s + (r.amount ?? 0), 0)),
         label: "Dispute Volume",
         trendText: "0.00% from last period",
@@ -155,28 +163,28 @@ function getKpisForSource(
     const lastBalance = data.paypalReconciliation.table[0]?.balance ?? 0;
     return [
       {
-        icon: <Wallet className="h-5 w-5 text-blue-400" />,
+        icon: <Wallet className={`h-5 w-5 ${iconColors.blue}`} />,
         value: formatCurrency(lastBalance),
         label: "Current Balance",
         trendText: "+6.8% from last period",
         trend: "up" as const,
       },
       {
-        icon: <TrendingUp className="h-5 w-5 text-green-400" />,
+        icon: <TrendingUp className={`h-5 w-5 ${iconColors.green}`} />,
         value: String(credits),
         label: "Credits",
         trendText: "+1 from last period",
         trend: "up" as const,
       },
       {
-        icon: <RotateCcw className="h-5 w-5 text-amber-400" />,
+        icon: <RotateCcw className={`h-5 w-5 ${iconColors.amber}`} />,
         value: String(debits),
         label: "Debits",
         trendText: "0% from last period",
         trend: "neutral" as const,
       },
       {
-        icon: <BarChart3 className="h-5 w-5 text-cyan-400" />,
+        icon: <BarChart3 className={`h-5 w-5 ${iconColors.cyan}`} />,
         value: formatCurrency(
           data.paypalReconciliation.table.reduce((s, r) => s + (r.amount ?? 0), 0)
         ),
@@ -192,21 +200,21 @@ function getKpisForSource(
     const last = rows[0];
     return [
       {
-        icon: <FileText className="h-5 w-5 text-blue-400" />,
+        icon: <FileText className={`h-5 w-5 ${iconColors.blue}`} />,
         value: last ? formatCurrency(Number(last.closingBalance)) : "—",
         label: "Statement Total",
         trendText: "+8.2% from last period",
         trend: "up" as const,
       },
       {
-        icon: <BarChart3 className="h-5 w-5 text-amber-400" />,
+        icon: <BarChart3 className={`h-5 w-5 ${iconColors.amber}`} />,
         value: String(rows.reduce((s, r) => s + (Number(r.transactionCount) || 0), 0)),
         label: "Transactions",
         trendText: "+2 from last period",
         trend: "up" as const,
       },
       {
-        icon: <Wallet className="h-5 w-5 text-purple-400" />,
+        icon: <Wallet className={`h-5 w-5 ${iconColors.purple}`} />,
         value: formatCurrency(
           rows.reduce((s, r) => s + (Number(r.totalIn) || 0), 0)
         ),
@@ -215,7 +223,7 @@ function getKpisForSource(
         trend: "neutral" as const,
       },
       {
-        icon: <Calendar className="h-5 w-5 text-cyan-400" />,
+        icon: <Calendar className={`h-5 w-5 ${iconColors.cyan}`} />,
         value: last?.period ?? "—",
         label: "Period",
         trendText: "Current",
@@ -228,28 +236,28 @@ function getKpisForSource(
     const totalVolume = data.stripe.table.reduce((s, r) => s + (r.amount ?? 0), 0);
     return [
       {
-        icon: <TrendingUp className="h-5 w-5 text-blue-400" />,
+        icon: <TrendingUp className={`h-5 w-5 ${iconColors.blue}`} />,
         value: formatCurrency(Math.max(0, totalVolume)),
         label: "Total Sales",
         trendText: "+12.5% from last period",
         trend: "up" as const,
       },
       {
-        icon: <AlertCircle className="h-5 w-5 text-amber-400" />,
+        icon: <AlertCircle className={`h-5 w-5 ${iconColors.amber}`} />,
         value: formatCurrency(Math.max(0, totalVolume) * 0.23),
         label: "Risk Volume",
         trendText: "53.26% from last period",
         trend: "up" as const,
       },
       {
-        icon: <RotateCcw className="h-5 w-5 text-purple-400" />,
+        icon: <RotateCcw className={`h-5 w-5 ${iconColors.purple}`} />,
         value: "2.4%",
         label: "Refund Rate",
         trendText: "-2.1% from last period",
         trend: "down" as const,
       },
       {
-        icon: <RefreshCw className="h-5 w-5 text-cyan-400" />,
+        icon: <RefreshCw className={`h-5 w-5 ${iconColors.cyan}`} />,
         value: "0.01%",
         label: "Dispute Rate",
         trendText: "0.00% from last period",
@@ -425,16 +433,6 @@ function flattenCaseReasonCountsDynamic(
   return result;
 }
 
-const DISPUTE_REASON_CHART_COLORS = [
-  "#6366f1",
-  "#22c55e",
-  "#f59e0b",
-  "#ef4444",
-  "#8b5cf6",
-  "#06b6d4",
-  "#ec4899",
-  "#84cc16",
-];
 
 /** Dedupe categories by trimmed key; return sorted unique keys and map key -> display name (first seen). */
 function uniqueCategoriesFromFlat(
@@ -485,7 +483,7 @@ function getDisputeReasonChartFromMerchantData(
   const series: LineSeriesConfig[] = categories.map((cat, i) => ({
     dataKey: cat,
     name: displayName(cat),
-    stroke: DISPUTE_REASON_CHART_COLORS[i % DISPUTE_REASON_CHART_COLORS.length],
+    stroke: chartPalette[i % chartPalette.length],
   }));
 
   return { data, series };
@@ -519,7 +517,7 @@ function getDisputeReasonOverTimeChartFromMerchantData(
   const series: LineSeriesConfig[] = categories.map((cat, i) => ({
     dataKey: cat,
     name: displayName(cat),
-    stroke: DISPUTE_REASON_CHART_COLORS[i % DISPUTE_REASON_CHART_COLORS.length],
+    stroke: chartPalette[i % chartPalette.length],
   }));
 
   return { data, series };
@@ -553,7 +551,7 @@ function getDisputeTypeChartFromMerchantData(
   const series: LineSeriesConfig[] = categories.map((cat, i) => ({
     dataKey: cat,
     name: displayName(cat),
-    stroke: DISPUTE_REASON_CHART_COLORS[i % DISPUTE_REASON_CHART_COLORS.length],
+    stroke: chartPalette[i % chartPalette.length],
   }));
 
   return { data, series };
@@ -587,7 +585,7 @@ function getDisputeTypeOverTimeChartFromMerchantData(
   const series: LineSeriesConfig[] = categories.map((cat, i) => ({
     dataKey: cat,
     name: displayName(cat),
-    stroke: DISPUTE_REASON_CHART_COLORS[i % DISPUTE_REASON_CHART_COLORS.length],
+    stroke: chartPalette[i % chartPalette.length],
   }));
 
   return { data, series };
@@ -621,7 +619,7 @@ function getDisputeOutcomeChartFromMerchantData(
   const series: LineSeriesConfig[] = categories.map((cat, i) => ({
     dataKey: cat,
     name: displayName(cat),
-    stroke: DISPUTE_REASON_CHART_COLORS[i % DISPUTE_REASON_CHART_COLORS.length],
+    stroke: chartPalette[i % chartPalette.length],
   }));
 
   return { data, series };
@@ -655,7 +653,7 @@ function getDisputeOutcomeOverTimeChartFromMerchantData(
   const series: LineSeriesConfig[] = categories.map((cat, i) => ({
     dataKey: cat,
     name: displayName(cat),
-    stroke: DISPUTE_REASON_CHART_COLORS[i % DISPUTE_REASON_CHART_COLORS.length],
+    stroke: chartPalette[i % chartPalette.length],
   }));
 
   return { data, series };
@@ -689,7 +687,7 @@ function getDisputeDelayByCurrencyChartFromMerchantData(
   const series: LineSeriesConfig[] = categories.map((cat, i) => ({
     dataKey: cat,
     name: displayName(cat),
-    stroke: DISPUTE_REASON_CHART_COLORS[i % DISPUTE_REASON_CHART_COLORS.length],
+    stroke: chartPalette[i % chartPalette.length],
   }));
 
   return { data, series };
@@ -723,7 +721,7 @@ function getDisputeDelayByCaseReasonChartFromMerchantData(
   const series: LineSeriesConfig[] = categories.map((cat, i) => ({
     dataKey: cat,
     name: displayName(cat),
-    stroke: DISPUTE_REASON_CHART_COLORS[i % DISPUTE_REASON_CHART_COLORS.length],
+    stroke: chartPalette[i % chartPalette.length],
   }));
 
   return { data, series };
@@ -757,7 +755,7 @@ function getDisputeDelayByCaseTypeChartFromMerchantData(
   const series: LineSeriesConfig[] = categories.map((cat, i) => ({
     dataKey: cat,
     name: displayName(cat),
-    stroke: DISPUTE_REASON_CHART_COLORS[i % DISPUTE_REASON_CHART_COLORS.length],
+    stroke: chartPalette[i % chartPalette.length],
   }));
 
   return { data, series };
@@ -933,7 +931,7 @@ export default function DashboardPage() {
   const paypalDisputeReasonChartSeries =
     disputeReasonChartFromMerchant.series.length > 0
       ? disputeReasonChartFromMerchant.series
-      : [{ dataKey: "value", name: "Count", stroke: "#6366f1" }];
+      : [{ dataKey: "value", name: "Count", stroke: defaultSeriesStroke }];
 
   // PayPal Dispute Reason Development Over Time from merchant_data (paypal_dispute.caseReason.percentage)
   const disputeReasonOverTimeChartFromMerchant = getDisputeReasonOverTimeChartFromMerchantData(merchantData);
@@ -944,7 +942,7 @@ export default function DashboardPage() {
   const paypalDisputeReasonOverTimeChartSeries =
     disputeReasonOverTimeChartFromMerchant.series.length > 0
       ? disputeReasonOverTimeChartFromMerchant.series
-      : [{ dataKey: "value", name: "Count", stroke: "#6366f1" }];
+      : [{ dataKey: "value", name: "Count", stroke: defaultSeriesStroke }];
 
   // PayPal Dispute Type chart from merchant_data (paypal_dispute.caseType.count)
   const disputeTypeChartFromMerchant = getDisputeTypeChartFromMerchantData(merchantData);
@@ -955,7 +953,7 @@ export default function DashboardPage() {
   const paypalDisputeTypeChartSeries =
     disputeTypeChartFromMerchant.series.length > 0
       ? disputeTypeChartFromMerchant.series
-      : [{ dataKey: "value", name: "Count", stroke: "#6366f1" }];
+      : [{ dataKey: "value", name: "Count", stroke: defaultSeriesStroke }];
 
   // PayPal Dispute Type Over Time from merchant_data (paypal_dispute.caseType.percentage)
   const disputeTypeOverTimeChartFromMerchant = getDisputeTypeOverTimeChartFromMerchantData(merchantData);
@@ -966,7 +964,7 @@ export default function DashboardPage() {
   const paypalDisputeTypeOverTimeChartSeries =
     disputeTypeOverTimeChartFromMerchant.series.length > 0
       ? disputeTypeOverTimeChartFromMerchant.series
-      : [{ dataKey: "value", name: "Count", stroke: "#6366f1" }];
+      : [{ dataKey: "value", name: "Count", stroke: defaultSeriesStroke }];
 
   // PayPal Dispute Outcome chart from merchant_data (paypal_dispute.disputeOutcome.count)
   const disputeOutcomeChartFromMerchant = getDisputeOutcomeChartFromMerchantData(merchantData);
@@ -977,7 +975,7 @@ export default function DashboardPage() {
   const paypalDisputeOutcomeChartSeries =
     disputeOutcomeChartFromMerchant.series.length > 0
       ? disputeOutcomeChartFromMerchant.series
-      : [{ dataKey: "value", name: "Count", stroke: "#6366f1" }];
+      : [{ dataKey: "value", name: "Count", stroke: defaultSeriesStroke }];
 
   // PayPal Dispute Outcome Over Time from merchant_data (paypal_dispute.disputeOutcome.percentage)
   const disputeOutcomeOverTimeChartFromMerchant = getDisputeOutcomeOverTimeChartFromMerchantData(merchantData);
@@ -988,7 +986,7 @@ export default function DashboardPage() {
   const paypalDisputeOutcomeOverTimeChartSeries =
     disputeOutcomeOverTimeChartFromMerchant.series.length > 0
       ? disputeOutcomeOverTimeChartFromMerchant.series
-      : [{ dataKey: "value", name: "Count", stroke: "#6366f1" }];
+      : [{ dataKey: "value", name: "Count", stroke: defaultSeriesStroke }];
 
   // PayPal Reconciliation table from merchant_data (paypal_master.kpi – same as Balance Summary)
   const paypalReconciliationTableColumns =
@@ -1046,9 +1044,9 @@ export default function DashboardPage() {
     disputeDelayByCurrencyChartFromMerchant.series.length > 0
       ? disputeDelayByCurrencyChartFromMerchant.series
       : [
-          { dataKey: "USD", name: "USD", stroke: "#3b82f6" },
-          { dataKey: "EUR", name: "EUR", stroke: "#22c55e" },
-          { dataKey: "GBP", name: "GBP", stroke: "#f59e0b" },
+          { dataKey: "USD", name: "USD", stroke: chartCurrency.USD },
+          { dataKey: "EUR", name: "EUR", stroke: chartCurrency.EUR },
+          { dataKey: "GBP", name: "GBP", stroke: chartCurrency.GBP },
         ];
 
   // PayPal Dispute Delay By Case Reason from merchant_data (paypal_dispute.disputeDelay.byCaseReason)
@@ -1061,9 +1059,9 @@ export default function DashboardPage() {
     disputeDelayByCaseReasonChartFromMerchant.series.length > 0
       ? disputeDelayByCaseReasonChartFromMerchant.series
       : [
-          { dataKey: "Item not received", name: "Item not received", stroke: "#3b82f6" },
-          { dataKey: "Unauthorized", name: "Unauthorized", stroke: "#ef4444" },
-          { dataKey: "Duplicate", name: "Duplicate", stroke: "#8b5cf6" },
+          { dataKey: "Item not received", name: "Item not received", stroke: chartCaseReason.itemNotReceived },
+          { dataKey: "Unauthorized", name: "Unauthorized", stroke: chartCaseReason.unauthorized },
+          { dataKey: "Duplicate", name: "Duplicate", stroke: chartCaseReason.duplicate },
         ];
 
   // PayPal Dispute Delay By Case Type from merchant_data (paypal_dispute.disputeDelay.byCaseType)
@@ -1076,9 +1074,9 @@ export default function DashboardPage() {
     disputeDelayByCaseTypeChartFromMerchant.series.length > 0
       ? disputeDelayByCaseTypeChartFromMerchant.series
       : [
-          { dataKey: "Chargeback", name: "Chargeback", stroke: "#ef4444" },
-          { dataKey: "Claim", name: "Claim", stroke: "#f59e0b" },
-          { dataKey: "Inquiry", name: "Inquiry", stroke: "#22c55e" },
+          { dataKey: "Chargeback", name: "Chargeback", stroke: chartCaseReason.chargeback },
+          { dataKey: "Claim", name: "Claim", stroke: chartCaseReason.claim },
+          { dataKey: "Inquiry", name: "Inquiry", stroke: chartCaseReason.inquiry },
         ];
 
   return (
@@ -1183,19 +1181,19 @@ export default function DashboardPage() {
                     <LineGraphWithImageDownload
                       title="Volume at Risk"
                       data={data.paypalBalanceSummary.volumeAtRiskChart}
-                      series={[{ dataKey: "value", name: "Volume at risk", stroke: "#ef4444" }]}
+                      series={[{ dataKey: "value", name: "Volume at risk", stroke: chartColors.danger }]}
                       filename="volume-at-risk-chart.png"
                     />
                     <LineGraphWithImageDownload
                       title="Rolling Reserve Levels vs Risk"
                       data={data.paypalBalanceSummary.rollingReserveVsRiskChart}
-                      series={[{ dataKey: "value", name: "Reserve %", stroke: "#f59e0b" }]}
+                      series={[{ dataKey: "value", name: "Reserve %", stroke: chartColors.warning }]}
                       filename="rolling-reserve-vs-risk-chart.png"
                     />
                     <LineGraphWithImageDownload
                       title="PayPal Dispute Delay"
                       data={data.paypalBalanceSummary.paypalDisputeDelayChart}
-                      series={[{ dataKey: "value", name: "Days", stroke: "#8b5cf6" }]}
+                      series={[{ dataKey: "value", name: "Days", stroke: chartColors.purple }]}
                       filename="paypal-dispute-delay-chart.png"
                     />
                   </div>
@@ -1305,19 +1303,19 @@ export default function DashboardPage() {
                     <LineGraphWithImageDownload
                       title="PayPal Reconciliation Balance"
                       data={data.paypalReconciliationSection.reconciliationBalanceChart}
-                      series={[{ dataKey: "value", name: "Balance", stroke: "#22c55e" }]}
+                      series={[{ dataKey: "value", name: "Balance", stroke: chartColors.success }]}
                       filename="paypal-reconciliation-balance.png"
                     />
                     <LineGraphWithImageDownload
                       title="Volume at Risk"
                       data={data.paypalReconciliationSection.volumeAtRiskChart}
-                      series={[{ dataKey: "value", name: "Volume at risk", stroke: "#ef4444" }]}
+                      series={[{ dataKey: "value", name: "Volume at risk", stroke: chartColors.danger }]}
                       filename="volume-at-risk-reconciliation.png"
                     />
                     <LineGraphWithImageDownload
                       title="Rolling Reserve Levels vs Risk"
                       data={data.paypalReconciliationSection.rollingReserveVsRiskChart}
-                      series={[{ dataKey: "value", name: "Reserve %", stroke: "#f59e0b" }]}
+                      series={[{ dataKey: "value", name: "Reserve %", stroke: chartColors.warning }]}
                       filename="rolling-reserve-levels-vs-risk.png"
                     />
                   </div>
@@ -1375,13 +1373,13 @@ export default function DashboardPage() {
                     <LineGraphWithImageDownload
                       title="Stripe Balance"
                       data={data.stripeSection.stripeBalanceChart}
-                      series={[{ dataKey: "value", name: "Balance", stroke: "#8b5cf6" }]}
+                      series={[{ dataKey: "value", name: "Balance", stroke: chartColors.purple }]}
                       filename="stripe-balance.png"
                     />
                     <LineGraphWithImageDownload
                       title="Rolling Reserve Levels vs Risk"
                       data={data.stripeSection.rollingReserveVsRiskChart}
-                      series={[{ dataKey: "value", name: "Reserve %", stroke: "#f59e0b" }]}
+                      series={[{ dataKey: "value", name: "Reserve %", stroke: chartColors.warning }]}
                       filename="stripe-rolling-reserve-levels-vs-risk.png"
                     />
                   </div>
@@ -1432,19 +1430,19 @@ export default function DashboardPage() {
                   <LineGraphWithImageDownload
                     title="Volume at Risk"
                     data={data.paypalBalanceSummary.volumeAtRiskChart}
-                    series={[{ dataKey: "value", name: "Volume at risk", stroke: "#ef4444" }]}
+                    series={[{ dataKey: "value", name: "Volume at risk", stroke: chartColors.danger }]}
                     filename="volume-at-risk-chart.png"
                   />
                   <LineGraphWithImageDownload
                     title="Rolling Reserve Levels vs Risk"
                     data={data.paypalBalanceSummary.rollingReserveVsRiskChart}
-                    series={[{ dataKey: "value", name: "Reserve %", stroke: "#f59e0b" }]}
+                    series={[{ dataKey: "value", name: "Reserve %", stroke: chartColors.warning }]}
                     filename="rolling-reserve-vs-risk-chart.png"
                   />
                   <LineGraphWithImageDownload
                     title="PayPal Dispute Delay"
                     data={data.paypalBalanceSummary.paypalDisputeDelayChart}
-                    series={[{ dataKey: "value", name: "Days", stroke: "#8b5cf6" }]}
+                    series={[{ dataKey: "value", name: "Days", stroke: chartColors.purple }]}
                     filename="paypal-dispute-delay-chart.png"
                   />
                 </div>
@@ -1560,19 +1558,19 @@ export default function DashboardPage() {
                   <LineGraphWithImageDownload
                     title="PayPal Reconciliation Balance"
                     data={data.paypalReconciliationSection.reconciliationBalanceChart}
-                    series={[{ dataKey: "value", name: "Balance", stroke: "#22c55e" }]}
+                    series={[{ dataKey: "value", name: "Balance", stroke: chartColors.success }]}
                     filename="paypal-reconciliation-balance.png"
                   />
                   <LineGraphWithImageDownload
                     title="Volume at Risk"
                     data={data.paypalReconciliationSection.volumeAtRiskChart}
-                    series={[{ dataKey: "value", name: "Volume at risk", stroke: "#ef4444" }]}
+                    series={[{ dataKey: "value", name: "Volume at risk", stroke: chartColors.danger }]}
                     filename="volume-at-risk-reconciliation.png"
                   />
                   <LineGraphWithImageDownload
                     title="Rolling Reserve Levels vs Risk"
                     data={data.paypalReconciliationSection.rollingReserveVsRiskChart}
-                    series={[{ dataKey: "value", name: "Reserve %", stroke: "#f59e0b" }]}
+                    series={[{ dataKey: "value", name: "Reserve %", stroke: chartColors.warning }]}
                     filename="rolling-reserve-levels-vs-risk.png"
                   />
                 </div>
@@ -1636,13 +1634,13 @@ export default function DashboardPage() {
                   <LineGraphWithImageDownload
                     title="Stripe Balance"
                     data={data.stripeSection.stripeBalanceChart}
-                    series={[{ dataKey: "value", name: "Balance", stroke: "#8b5cf6" }]}
+                    series={[{ dataKey: "value", name: "Balance", stroke: chartColors.purple }]}
                     filename="stripe-balance.png"
                   />
                   <LineGraphWithImageDownload
                     title="Rolling Reserve Levels vs Risk"
                     data={data.stripeSection.rollingReserveVsRiskChart}
-                    series={[{ dataKey: "value", name: "Reserve %", stroke: "#f59e0b" }]}
+                    series={[{ dataKey: "value", name: "Reserve %", stroke: chartColors.warning }]}
                     filename="stripe-rolling-reserve-levels-vs-risk.png"
                   />
                 </div>
