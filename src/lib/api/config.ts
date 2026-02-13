@@ -5,6 +5,8 @@
  * Environment variables (optional):
  * - NEXT_PUBLIC_XANO_AUTH_BASE_URL  – Xano auth API base (login, auth/me)
  * - NEXT_PUBLIC_XANO_DATA_BASE_URL  – Xano data API base (transform_data, upload_data, merchant_data_dev)
+ * - NEXT_PUBLIC_TRANSFORM_DATA_PATH – Override transform path if Xano uses different name (default: /transform_data)
+ * - NEXT_PUBLIC_UPLOAD_DATA_PATH    – Override upload path (default: /upload_data)
  */
 
 export type ApiId = "xanoAuth" | "xanoData";
@@ -17,24 +19,37 @@ export interface ApiConfigEntry {
   defaultHeaders?: Record<string, string>;
 }
 
+function orDefault(env: string | undefined, fallback: string): string {
+  const v = (env ?? "").trim();
+  return v.length > 0 ? v : fallback;
+}
+
 const defaultConfig: Record<ApiId, ApiConfigEntry> = {
   xanoAuth: {
-    baseUrl:
-      process.env.NEXT_PUBLIC_XANO_AUTH_BASE_URL ??
-      "https://xkt8-uti5-g3tj.n7e.xano.io/api:FofqTbkb",
+    baseUrl: orDefault(
+      process.env.NEXT_PUBLIC_XANO_AUTH_BASE_URL,
+      "https://xkt8-uti5-g3tj.n7e.xano.io/api:FofqTbkb"
+    ),
     defaultHeaders: {
       "Content-Type": "application/json",
     },
   },
   xanoData: {
-    baseUrl:
-      process.env.NEXT_PUBLIC_XANO_DATA_BASE_URL ??
-      "https://xkt8-uti5-g3tj.n7e.xano.io/api:6xe0tZ0a",
+    baseUrl: orDefault(
+      process.env.NEXT_PUBLIC_XANO_DATA_BASE_URL,
+      "https://xkt8-uti5-g3tj.n7e.xano.io/api:6xe0tZ0a"
+    ),
     defaultHeaders: {
       "Content-Type": "application/json",
     },
   },
-};
+} as const;
+
+/** Optional path overrides – set in .env if Xano uses different endpoint names */
+export const apiPaths = {
+  transformData: orDefault(process.env.NEXT_PUBLIC_TRANSFORM_DATA_PATH, "/transform_data"),
+  uploadData: orDefault(process.env.NEXT_PUBLIC_UPLOAD_DATA_PATH, "/upload_data"),
+} as const;
 
 let config: Record<ApiId, ApiConfigEntry> = { ...defaultConfig };
 

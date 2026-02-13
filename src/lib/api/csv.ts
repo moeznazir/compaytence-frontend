@@ -1,5 +1,6 @@
 import type { CsvUploadStatus } from "@/lib/types";
 import { mockGet, mockPost } from "./client";
+import { apiPaths } from "./config";
 import { externalPost } from "./external-client";
 import {
   normalizeTransformResponse,
@@ -22,7 +23,7 @@ export async function transformCsvData(
   data: Record<string, string>[],
   type: CsvTransformType
 ): Promise<TransformTableResult> {
-  const raw = await externalPost<unknown>("xanoData", "/transform_data", { data, type }, {
+  const raw = await externalPost<unknown>("xanoData", apiPaths.transformData, { data, type }, {
     errorFallback: "Transform failed",
   });
   return normalizeTransformResponse(raw);
@@ -33,7 +34,7 @@ export async function uploadData(
   data: Record<string, string>[],
   type: CsvTransformType
 ): Promise<unknown> {
-  return externalPost<unknown>("xanoData", "/upload_data", { data, type }, {
+  return externalPost<unknown>("xanoData", apiPaths.uploadData, { data, type }, {
     errorFallback: "Upload failed",
   });
 }
