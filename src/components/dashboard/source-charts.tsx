@@ -15,10 +15,11 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { SourceChartPoint } from "@/lib/types";
+import { chartStyle, defaultSeriesStroke } from "@/lib/theme";
 
 const chartTooltipStyle = {
-  backgroundColor: "#fff",
-  border: "1px solid #e2e8f0",
+  backgroundColor: chartStyle.tooltipBg,
+  border: `1px solid ${chartStyle.tooltipBorder}`,
   borderRadius: "8px",
 };
 
@@ -26,7 +27,7 @@ export function SourceBarChart({
   title,
   data,
   dataKey = "value",
-  fill = "#475569",
+  fill = chartStyle.labelFill,
 }: {
   title: string;
   data: SourceChartPoint[];
@@ -47,8 +48,8 @@ export function SourceBarChart({
               margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200" />
-              <XAxis dataKey="period" tick={{ fill: "#64748b", fontSize: 12 }} />
-              <YAxis tick={{ fill: "#64748b", fontSize: 12 }} />
+              <XAxis dataKey="period" tick={{ fill: chartStyle.tickFill, fontSize: 12 }} />
+              <YAxis tick={{ fill: chartStyle.tickFill, fontSize: 12 }} />
               <Tooltip contentStyle={chartTooltipStyle} />
               <Bar dataKey={dataKey} name="Value" fill={fill} radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -63,7 +64,7 @@ export function SourceLineChart({
   title,
   data,
   dataKey = "value",
-  stroke = "#6366f1",
+  stroke = defaultSeriesStroke,
 }: {
   title: string;
   data: SourceChartPoint[];
@@ -84,8 +85,8 @@ export function SourceLineChart({
               margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200" />
-              <XAxis dataKey="period" tick={{ fill: "#64748b", fontSize: 12 }} />
-              <YAxis tick={{ fill: "#64748b", fontSize: 12 }} />
+              <XAxis dataKey="period" tick={{ fill: chartStyle.tickFill, fontSize: 12 }} />
+              <YAxis tick={{ fill: chartStyle.tickFill, fontSize: 12 }} />
               <Tooltip contentStyle={chartTooltipStyle} />
               <Line
                 type="monotone"
@@ -107,7 +108,7 @@ export function SourceAreaChart({
   title,
   data,
   dataKey = "value",
-  fill = "#6366f1",
+  fill = defaultSeriesStroke,
 }: {
   title: string;
   data: SourceChartPoint[];
@@ -128,8 +129,8 @@ export function SourceAreaChart({
               margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200" />
-              <XAxis dataKey="period" tick={{ fill: "#64748b", fontSize: 12 }} />
-              <YAxis tick={{ fill: "#64748b", fontSize: 12 }} />
+              <XAxis dataKey="period" tick={{ fill: chartStyle.tickFill, fontSize: 12 }} />
+              <YAxis tick={{ fill: chartStyle.tickFill, fontSize: 12 }} />
               <Tooltip contentStyle={chartTooltipStyle} />
               <Area
                 type="monotone"

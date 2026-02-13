@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/*
+ * Single source of truth for UI theme (light/dark).
+ * Change background, surface, text, border, and accent only here.
+ * Chart/hex colors and icon utility classes: see src/lib/theme.ts
+ */
+
 /* Light mode (default) */
 :root,
 .light {

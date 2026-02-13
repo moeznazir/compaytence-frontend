@@ -42,8 +42,8 @@ export default function ProfilePage() {
     try {
       setUser({ ...user, name: data.name, email: data.email });
       toast.success("Profile updated");
-    } catch {
-      toast.error("Failed to update");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update");
     } finally {
       setSaving(false);
     }

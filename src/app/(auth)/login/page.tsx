@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { login } from "@/lib/api/auth";
+import { login, getMe } from "@/lib/api/auth";
 import { useAuthStore } from "@/store/auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,15 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const res = await login(data);
-      setAuth(res.user, res.token);
+      // Fetch full user details from auth/me (e.g. company_id) after authenticated
+      try {
+        const me = await getMe(res.token);
+        setAuth(me, res.token);
+      } catch (meErr) {
+        setAuth(res.user, res.token);
+        const msg = meErr instanceof Error ? meErr.message : "Could not load profile";
+        toast.warning(msg);
+      }
       toast.success("Signed in successfully");
       router.replace("/dashboard");
     } catch (err) {

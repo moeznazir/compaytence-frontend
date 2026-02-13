@@ -72,8 +72,9 @@ export default function CompanyDetailPage() {
       const updated = await updateCompany(id, { name: editName, slug: editSlug });
       setCompany(updated);
       toast.success("Company updated");
-    } catch {
-      toast.error("Failed to update");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update";
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -98,8 +99,9 @@ export default function CompanyDetailPage() {
       setEmployeeModal(null);
       getEmployees(id, searchEmp || undefined).then(setEmployees);
       toast.success("Employee updated");
-    } catch {
-      toast.error("Failed to update");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update";
+      toast.error(message);
     } finally {
       setSaving(false);
     }

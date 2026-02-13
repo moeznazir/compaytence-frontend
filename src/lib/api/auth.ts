@@ -1,7 +1,6 @@
 import type { User, UserRole } from "@/lib/types";
 import { mockGet, mockPost } from "./client";
-
-const LOGIN_API_URL = "https://xkt8-uti5-g3tj.n7e.xano.io/api:FofqTbkb/auth/login";
+import { externalGet, externalPost } from "./external-client";
 
 const MOCK_USER: User = {
   id: "u1",
@@ -9,6 +8,7 @@ const MOCK_USER: User = {
   name: "Admin User",
   role: "super_admin",
   companyId: "c1",
+  companyProfileId: null,
   enabled: true,
   createdAt: new Date().toISOString(),
 };
@@ -34,6 +34,7 @@ function mapApiUserToUser(apiUser: Record<string, unknown>): User {
       ? (role as UserRole)
       : "company_employee",
     companyId: apiUser.company_id != null ? String(apiUser.company_id) : null,
+    companyProfileId: apiUser.company_profile_id != null ? String(apiUser.company_profile_id) : null,
     enabled: apiUser.enabled !== false,
     createdAt:
       typeof apiUser.created_at === "string"
@@ -43,40 +44,20 @@ function mapApiUserToUser(apiUser: Record<string, unknown>): User {
 }
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
-  const res = await fetch(LOGIN_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: payload.email,
-      password: payload.password,
-    }),
-  });
+  const body = await externalPost<Record<string, unknown>>(
+    "xanoAuth",
+    "/auth/login",
+    { email: payload.email, password: payload.password },
+    { auth: false, skipEnsureAuthorized: true, errorFallback: "Invalid email or password" }
+  );
 
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    const body = data as { message?: string; error?: string; msg?: string };
-    const message =
-      body.message ?? body.error ?? body.msg ?? (res.statusText || "Invalid email or password");
-    throw new Error(message);
-  }
-
-  const body = data as {
-    token?: string;
-    authToken?: string;
-    auth_token?: string;
-    access_token?: string;
-    user?: Record<string, unknown>;
-    id?: unknown;
-    email?: string;
-    name?: string;
-  };
+  const obj = body && typeof body === "object" ? body : {};
   const token =
-    body.token ?? body.authToken ?? body.auth_token ?? body.access_token ?? "";
+    (obj.token ?? obj.authToken ?? obj.auth_token ?? obj.access_token ?? "") as string;
   const apiUser =
-    typeof body.user === "object" && body.user !== null
-      ? body.user
-      : { ...body, email: payload.email };
+    typeof obj.user === "object" && obj.user !== null
+      ? (obj.user as Record<string, unknown>)
+      : ({ ...obj, email: payload.email } as Record<string, unknown>);
   const user = mapApiUserToUser(apiUser);
   if (!user.email) user.email = payload.email;
 
@@ -100,6 +81,7 @@ export async function signup(payload: {
       name: payload.name,
       role: "company_employee",
       companyId: "c-new",
+      companyProfileId: null,
       enabled: true,
       createdAt: new Date().toISOString(),
     },
@@ -111,6 +93,19 @@ export async function resetPassword(payload: {
   email: string;
 }): Promise<{ success: boolean }> {
   return mockPost({ success: true });
+}
+
+/**
+ * GET auth/me – fetch current user details using the auth token.
+ * Call after login to get full user (e.g. company_id) from the backend.
+ */
+export async function getMe(token: string): Promise<User> {
+  const data = await externalGet<Record<string, unknown>>("xanoAuth", "/auth/me", {
+    token,
+    errorFallback: "Failed to load user",
+  });
+  const apiUser = (typeof data === "object" && data !== null ? data : {}) as Record<string, unknown>;
+  return mapApiUserToUser(apiUser);
 }
 
 export async function getCurrentUser(token: string): Promise<User | null> {
