@@ -57,6 +57,7 @@ export async function externalFetch<T = unknown>(
   }
 
   const res = await fetch(url, {
+    ...init,
     ...restInit,
     headers,
   });
@@ -67,7 +68,8 @@ export async function externalFetch<T = unknown>(
 
   if (!res.ok) {
     const message = await parseFetchError(res, errorFallback ?? "Request failed");
-    throw new Error(message);
+    const urlInfo = ` (${res.status} ${res.statusText} → ${url})`;
+    throw new Error(message + urlInfo);
   }
 
   const text = await res.text();
