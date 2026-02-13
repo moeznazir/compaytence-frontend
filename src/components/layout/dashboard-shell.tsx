@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { useNotificationsStore } from "@/store/notifications-store";
@@ -79,8 +80,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-theme-bg-muted">
       <header className="sticky top-0 z-40 border-b border-theme-border bg-theme-surface">
         <div className="flex h-14 items-center justify-between px-4 lg:px-8">
-          <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-theme-text">
-            Compaytence
+          <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-theme-text shrink-0">
+            <span className="relative block h-8 w-[160px]">
+              <Image
+                src={theme === "dark" ? "/images/compaytence-logo-dark.png" : "/images/compaytence-logo-light.png"}
+                alt="Compaytence"
+                fill
+                className="object-contain object-left"
+                sizes="160px"
+                priority
+              />
+            </span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {nav.filter((n) => canView(n.href)).map((item) => {
